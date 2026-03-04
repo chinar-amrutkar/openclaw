@@ -27,9 +27,11 @@ interface TelegramAccountConfig {
   groups?: Record<string, TelegramGroupConfig>;
 }
 
-interface TelegramChannelConfig {
-  errorPolicy?: TelegramErrorPolicy;
-  errorCooldownMs?: number;
+/**
+ * Channel-level config (TelegramConfigSchema) which extends account config
+ * and adds accounts map.
+ */
+interface TelegramChannelConfig extends Omit<TelegramAccountConfig, "groups"> {
   groups?: Record<string, TelegramGroupConfig>;
   accounts?: Record<string, TelegramAccountConfig>;
 }
