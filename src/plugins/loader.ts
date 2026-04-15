@@ -2037,7 +2037,7 @@ export function loadOpenClawPlugins(options: PluginLoadOptions = {}): PluginRegi
 
       if (typeof register !== "function") {
         // Check if this is a bundled channel entry that uses the new contract
-        const resolvedModule = resolved?.definition ?? {};
+        const resolvedModule = (resolved?.definition ?? {}) as { kind?: unknown };
         const isBundledChannelEntry =
           resolvedModule.kind === "bundled-channel-entry";
         if (isBundledChannelEntry) {
@@ -2466,7 +2466,7 @@ export async function loadOpenClawPluginCliRegistry(
 
     if (typeof register !== "function") {
       // Check if this is a bundled channel entry that uses the new contract
-      const resolvedModule = resolved?.definition ?? {};
+      const resolvedModule = (resolved?.definition ?? {}) as { kind?: unknown };
       const isBundledChannelEntry =
         resolvedModule.kind === "bundled-channel-entry";
       if (isBundledChannelEntry) {
