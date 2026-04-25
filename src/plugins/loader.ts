@@ -3098,10 +3098,10 @@ export function loadOpenClawPlugins(options: PluginLoadOptions = {}): PluginRegi
         const isBundledChannelEntry =
           resolvedModule.kind === "bundled-channel-entry";
         if (isBundledChannelEntry) {
-          logger.error(
-            `[plugins] ${record.id} is a bundled channel entry that requires setup-runtime; ensure plugin is loaded via bundled channel discovery, not legacy plugin loader`,
+          // Error is recorded by pushPluginLoadError; no redundant logging.
+          pushPluginLoadError(
+            "bundled channel entry loaded via legacy plugin loader — use setup-runtime loader instead",
           );
-          pushPluginLoadError("bundled channel entry requires setup-runtime loader");
         } else {
           logger.error(`[plugins] ${record.id} missing register/activate export`);
           pushPluginLoadError("plugin export missing register/activate");
