@@ -100,6 +100,7 @@ type ShortTermPhaseSignalStore = {
   version: 1;
   updatedAt: string;
   entries: Record<string, ShortTermPhaseSignalEntry>;
+  lastLightEmittedAt?: string;
 };
 
 export type PromotionComponents = {

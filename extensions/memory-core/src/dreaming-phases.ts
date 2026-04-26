@@ -27,6 +27,7 @@ import {
   readShortTermRecallEntries,
   recordDreamingPhaseSignals,
   recordShortTermRecalls,
+  resolveShortTermPhaseSignalStorePath,
   type ShortTermRecallEntry,
 } from "./short-term-promotion.js";
 
@@ -338,6 +339,47 @@ function entryWithinLookback(entry: ShortTermRecallEntry, cutoffMs: number): boo
   }
   const lastRecalledAtMs = Date.parse(entry.lastRecalledAt);
   return Number.isFinite(lastRecalledAtMs) && lastRecalledAtMs >= cutoffMs;
+}
+
+// \\\
+// Last-emitted-at state for light dreaming
+// This tracks the most recent time the light-phase summary was written.
+function resolveLightDreamingEmittedStatePath(workspaceDir: string): string {
+  return resolveShortTermPhaseSignalStorePath(workspaceDir);
+}
+
+async function readLastLightEmittedAt(workspaceDir: string): Promise<number | null> {
+  const statePath = resolveLightDreamingEmittedStatePath(workspaceDir);
+  try {
+    const raw = await fs.readFile(statePath, "utf-8");
+    const store = JSON.parse(raw) as Record<string, unknown>;
+    const val = store.lastLightEmittedAt;
+    if (typeof val === "string") {
+      const ms = Date.parse(val);
+      return Number.isFinite(ms) ? ms : null;
+    }
+  } catch {
+    // ignore — file missing or corrupt
+  }
+  return null;
+}
+
+async function writeLastLightEmittedAt(workspaceDir: string, ms: number): Promise<void> {
+  const statePath = resolveLightDreamingEmittedStatePath(workspaceDir);
+  let store: Record<string, unknown> = {
+    version: 1,
+    entries: {},
+    updatedAt: new Date().toISOString(),
+  };
+  try {
+    const raw = await fs.readFile(statePath, "utf-8");
+    store = JSON.parse(raw) as Record<string, unknown>;
+  } catch {
+    // ignore — file missing
+  }
+  store.lastLightEmittedAt = new Date(ms).toISOString();
+  store.updatedAt = new Date().toISOString();
+  await fs.writeFile(statePath, JSON.stringify(store, null, 2), "utf-8");
 }
 
 type DailyIngestionBatch = {
@@ -1484,6 +1526,8 @@ async function runLightDreaming(params: {
 }): Promise<void> {
   const nowMs = Number.isFinite(params.nowMs) ? (params.nowMs as number) : Date.now();
   const cutoffMs = calculateLookbackCutoffMs(nowMs, params.config.lookbackDays);
+  const lastEmittedAtMs = await readLastLightEmittedAt(params.workspaceDir);
+  const effectiveCutoffMs = lastEmittedAtMs !== null ? Math.max(cutoffMs, lastEmittedAtMs) : cutoffMs;
   await ingestDailyMemorySignals({
     workspaceDir: params.workspaceDir,
     lookbackDays: params.config.lookbackDays,
@@ -1500,7 +1544,7 @@ async function runLightDreaming(params: {
   });
   const entries = dedupeEntries(
     (await readShortTermRecallEntries({ workspaceDir: params.workspaceDir, nowMs }))
-      .filter((entry) => entryWithinLookback(entry, cutoffMs))
+      .filter((entry) => entryWithinLookback(entry, effectiveCutoffMs))
       .toSorted((a, b) => {
         const byTime = Date.parse(b.lastRecalledAt) - Date.parse(a.lastRecalledAt);
         if (byTime !== 0) {
@@ -1521,6 +1565,7 @@ async function runLightDreaming(params: {
     timezone: params.config.timezone,
     storage: params.config.storage,
   });
+  await writeLastLightEmittedAt(params.workspaceDir, nowMs);
   await recordDreamingPhaseSignals({
     workspaceDir: params.workspaceDir,
     phase: "light",
