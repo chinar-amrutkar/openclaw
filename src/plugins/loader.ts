@@ -1536,6 +1536,14 @@ function describePluginModuleExportShape(
   return details;
 }
 
+function formatMissingPluginRegisterError(moduleExport: unknown, env: NodeJS.ProcessEnv): string {
+  const message = "plugin export missing register/activate";
+  if (!isPluginLoadDebugEnabled(env)) {
+    return message;
+  }
+  return `${message} (module shape: ${describePluginModuleExportShape(moduleExport).join("; ")})`;
+}
+
 
 function mergeChannelPluginSection<T>(
   baseValue: T | undefined,
@@ -3094,7 +3102,7 @@ export function loadOpenClawPlugins(options: PluginLoadOptions = {}): PluginRegi
           );
         } else {
           logger.error(`[plugins] ${record.id} missing register/activate export`);
-          pushPluginLoadError("plugin export missing register/activate");
+          pushPluginLoadError(formatMissingPluginRegisterError(mod, env));
         }
         continue;
       }
@@ -3544,7 +3552,7 @@ export async function loadOpenClawPluginCliRegistry(
         pushPluginLoadError("bundled channel entry requires setup-runtime loader");
       } else {
         logger.error(`[plugins] ${record.id} missing register/activate export`);
-        pushPluginLoadError("plugin export missing register/activate");
+        pushPluginLoadError(formatMissingPluginRegisterError(mod, env));
       }
       continue;
     }

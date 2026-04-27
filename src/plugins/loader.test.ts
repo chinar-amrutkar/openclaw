@@ -4886,6 +4886,27 @@ module.exports = { id: "throws-after-import", register() {} };`,
     expect(loaded?.error).toContain("export.default:object keys=default");
   });
 
+  it("does not include module shape when OPENCLAW_PLUGIN_LOAD_DEBUG is not set", () => {
+    useNoBundledPlugins();
+    const plugin = writePlugin({
+      id: "missing-register-no-debug",
+      filename: "missing-register-no-debug.cjs",
+      body: `module.exports = { default: { default: { id: "missing-register-no-debug" } } };`,
+    });
+
+    const registry = loadRegistryFromSinglePlugin({
+      plugin,
+      pluginConfig: {
+        allow: ["missing-register-no-debug"],
+      },
+    });
+
+    const loaded = registry.plugins.find((entry) => entry.id === "missing-register-no-debug");
+    expect(loaded?.status).toBe("error");
+    expect(loaded?.error).toContain("plugin export missing register/activate");
+    expect(loaded?.error).not.toContain("module shape:");
+  });
+
   it("handles single-plugin channel, context engine, and cli validation", () => {
     useNoBundledPlugins();
     const scenarios = [
@@ -5486,6 +5507,61 @@ module.exports = { id: "throws-after-import", register() {} };`,
     expect(registry.channels.some((entry) => entry.plugin.id === "nested-default-channel")).toBe(
       true,
     );
+  });
+
+  it("reports bundled-channel-entry loaded via legacy loader with specific error", () => {
+    useNoBundledPlugins();
+    const pluginDir = makeTempDir();
+
+    fs.writeFileSync(
+      path.join(pluginDir, "package.json"),
+      JSON.stringify({
+        name: "@openclaw/bundled-channel-legacy",
+        openclaw: { extensions: ["./index.cjs"] },
+      }),
+      "utf-8",
+    );
+    fs.writeFileSync(
+      path.join(pluginDir, "openclaw.plugin.json"),
+      JSON.stringify({
+        id: "bundled-channel-legacy",
+        configSchema: EMPTY_PLUGIN_SCHEMA,
+        channels: ["bundled-channel-legacy"],
+      }),
+      "utf-8",
+    );
+    // Bundled-channel-entry has no register function (uses loadChannelPlugin instead)
+    fs.writeFileSync(
+      path.join(pluginDir, "index.cjs"),
+      `module.exports = {
+  default: {
+    id: "bundled-channel-legacy",
+    kind: "bundled-channel-entry",
+    name: "Bundled Channel Legacy",
+    description: "test bundled channel entry",
+    // No register function (bundled-channel-entry uses loadChannelPlugin instead)
+    loadChannelPlugin() { return {}; },
+  },
+};`,
+      "utf-8",
+    );
+
+    const registry = loadOpenClawPlugins({
+      cache: false,
+      config: {
+        channels: {
+          "bundled-channel-legacy": { enabled: true },
+        },
+        plugins: {
+          load: { paths: [pluginDir] },
+          allow: ["bundled-channel-legacy"],
+        },
+      },
+    });
+
+    const loaded = registry.plugins.find((entry) => entry.id === "bundled-channel-legacy");
+    expect(loaded?.status).toBe("error");
+    expect(loaded?.error).toContain("bundled channel entry loaded via legacy plugin loader");
   });
 
   it("does not treat manifest channel ids as scoped plugin id matches", () => {
