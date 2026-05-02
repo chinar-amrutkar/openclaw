@@ -3095,11 +3095,19 @@ export function loadOpenClawPlugins(options: PluginLoadOptions = {}): PluginRegi
 
       if (typeof register !== "function") {
         const resolvedModule = (resolved?.definition ?? {}) as { kind?: unknown };
-        const isBundledChannelEntry = resolvedModule.kind === "bundled-channel-entry";
-        if (isBundledChannelEntry) {
-          pushPluginLoadError(
-            "bundled channel entry loaded via legacy plugin loader — use setup-runtime loader instead",
-          );
+        const kind = resolvedModule.kind;
+        const isBundledChannelEntry = kind === "bundled-channel-entry";
+        const isBundledChannelSetupEntry = kind === "bundled-channel-setup-entry";
+        if (isBundledChannelEntry || isBundledChannelSetupEntry) {
+          if (isBundledChannelSetupEntry) {
+            pushPluginLoadError(
+              "bundled channel setup entry loaded via legacy plugin loader — use setup-runtime loader instead",
+            );
+          } else {
+            pushPluginLoadError(
+              "bundled channel entry loaded via legacy plugin loader — use setup-runtime loader instead",
+            );
+          }
         } else {
           logger.error(`[plugins] ${record.id} missing register/activate export`);
           pushPluginLoadError(formatMissingPluginRegisterError(mod, env));
@@ -3544,12 +3552,23 @@ export async function loadOpenClawPluginCliRegistry(
 
     if (typeof register !== "function") {
       const resolvedModule = (resolved?.definition ?? {}) as { kind?: unknown };
-      const isBundledChannelEntry = resolvedModule.kind === "bundled-channel-entry";
-      if (isBundledChannelEntry) {
-        logger.error(
-          `[plugins] ${record.id} is a bundled channel entry that requires setup-runtime; ensure plugin is loaded via bundled channel discovery, not legacy plugin loader`,
-        );
-        pushPluginLoadError("bundled channel entry requires setup-runtime loader");
+      const kind = resolvedModule.kind;
+      const isBundledChannelEntry = kind === "bundled-channel-entry";
+      const isBundledChannelSetupEntry = kind === "bundled-channel-setup-entry";
+      if (isBundledChannelEntry || isBundledChannelSetupEntry) {
+        if (isBundledChannelSetupEntry) {
+          logger.error(
+            `[plugins] ${record.id} is a bundled channel setup entry that requires setup-runtime; ensure plugin is loaded via bundled channel discovery, not legacy plugin loader`,
+          );
+          pushPluginLoadError(
+            "bundled channel setup entry requires setup-runtime loader",
+          );
+        } else {
+          logger.error(
+            `[plugins] ${record.id} is a bundled channel entry that requires setup-runtime; ensure plugin is loaded via bundled channel discovery, not legacy plugin loader`,
+          );
+          pushPluginLoadError("bundled channel entry requires setup-runtime loader");
+        }
       } else {
         logger.error(`[plugins] ${record.id} missing register/activate export`);
         pushPluginLoadError(formatMissingPluginRegisterError(mod, env));
