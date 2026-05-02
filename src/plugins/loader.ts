@@ -3094,10 +3094,8 @@ export function loadOpenClawPlugins(options: PluginLoadOptions = {}): PluginRegi
       }
 
       if (typeof register !== "function") {
-        const resolvedModule = (resolved?.definition ?? {}) as { kind?: unknown };
-        const kind = resolvedModule.kind;
-        const isBundledChannelEntry = kind === "bundled-channel-entry";
-        const isBundledChannelSetupEntry = kind === "bundled-channel-setup-entry";
+        const isBundledChannelEntry = record.kind === "bundled-channel-entry";
+        const isBundledChannelSetupEntry = record.kind === "bundled-channel-setup-entry";
         if (isBundledChannelEntry || isBundledChannelSetupEntry) {
           if (isBundledChannelSetupEntry) {
             pushPluginLoadError(
@@ -3551,10 +3549,8 @@ export async function loadOpenClawPluginCliRegistry(
     }
 
     if (typeof register !== "function") {
-      const resolvedModule = (resolved?.definition ?? {}) as { kind?: unknown };
-      const kind = resolvedModule.kind;
-      const isBundledChannelEntry = kind === "bundled-channel-entry";
-      const isBundledChannelSetupEntry = kind === "bundled-channel-setup-entry";
+      const isBundledChannelEntry = record.kind === "bundled-channel-entry";
+      const isBundledChannelSetupEntry = record.kind === "bundled-channel-setup-entry";
       if (isBundledChannelEntry || isBundledChannelSetupEntry) {
         if (isBundledChannelSetupEntry) {
           logger.error(

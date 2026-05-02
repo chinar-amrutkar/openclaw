@@ -17,6 +17,7 @@ Docs: https://docs.openclaw.ai
 ### Fixes
 
 - Channels/commands: make generated `/dock-*` commands switch the active session reply route through `session.identityLinks` instead of falling through to normal chat. Fixes #69206; carries forward #73033. Thanks @clawbones and @michaelatamuk.
+- Plugins/loader: detect `bundled-channel-setup-entry` in the wrong-loader path alongside `bundled-channel-entry`, and use `record.kind` directly instead of re-reading via `resolved?.definition`. Fixes #71459 review comment about missing setup-entry handling. Thanks @chinar-amrutkar.
 - Providers/Cloudflare AI Gateway: strip assistant prefill turns from Anthropic Messages payloads when thinking is enabled, so Claude requests through Cloudflare AI Gateway no longer fail Anthropic conversation-ending validation. Fixes #72905; carries forward #73005. Thanks @AaronFaby and @sahilsatralkar.
 - Gateway/startup: scope primary-model provider discovery during channel prewarm to the configured provider owner and add split startup trace timings, so boot avoids staging unrelated bundled provider dependencies while setup discovery remains broad. Fixes #73002. Thanks @Schnup03.
 - Channels/Microsoft Teams: unwrap staged CommonJS JWT runtime dependencies before Bot Connector token validation so inbound Teams messages no longer 401 after the bundled runtime-deps move. Fixes #73026. Thanks @kbrown10000.
