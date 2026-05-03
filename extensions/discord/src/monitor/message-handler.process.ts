@@ -234,6 +234,17 @@ export async function processDiscordMessage(
   if (!processContext) {
     return;
   }
+  // Best-effort early typing cue — sends immediately after inbound message is accepted,
+  // before queueing, compaction probe, context assembly, or model loop starts.
+  // Parity fix with Telegram (#63759).
+  const earlyTypingChannelId = deliverTarget.startsWith("channel:")
+    ? deliverTarget.slice("channel:".length)
+    : messageChannelId;
+  void sendTyping({ rest: feedbackRest, channelId: earlyTypingChannelId }).catch((err) => {
+    logVerbose(
+      `discord early typing cue failed for channel ${earlyTypingChannelId}: ${String(err)}`,
+    );
+  });
   const {
     ctxPayload,
     persistedSessionKey,
