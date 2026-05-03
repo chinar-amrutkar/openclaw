@@ -44,12 +44,22 @@ export function resolveOpenClawPluginToolsForOptions(params: {
     threadId: params.options?.agentThreadId,
   });
 
+  // Cache the snapshot for the one-shot runtimeConfig so we avoid repeated
+  // structuredClone overhead on the plugin tool hot path (see issue #76295).
+  // Keep getRuntimeConfig as a live getter to observe runtime refreshes
+  // (long-lived plugin tool callbacks depend on live refresh semantics).
+  const currentRuntimeSnapshot = getActiveSecretsRuntimeSnapshot();
+  const runtimeConfig = selectApplicableRuntimeConfig({
+    inputConfig: params.resolvedConfig ?? params.options?.config,
+    runtimeConfig: currentRuntimeSnapshot?.config,
+    runtimeSourceConfig: currentRuntimeSnapshot?.sourceConfig,
+  });
   const resolveCurrentRuntimeConfig = () => {
-    const currentRuntimeSnapshot = getActiveSecretsRuntimeSnapshot();
+    const liveSnapshot = getActiveSecretsRuntimeSnapshot();
     return selectApplicableRuntimeConfig({
       inputConfig: params.resolvedConfig ?? params.options?.config,
-      runtimeConfig: currentRuntimeSnapshot?.config,
-      runtimeSourceConfig: currentRuntimeSnapshot?.sourceConfig,
+      runtimeConfig: liveSnapshot?.config,
+      runtimeSourceConfig: liveSnapshot?.sourceConfig,
     });
   };
   const authProfileStore = params.options?.authProfileStore;
@@ -57,7 +67,7 @@ export function resolveOpenClawPluginToolsForOptions(params: {
     ...resolveOpenClawPluginToolInputs({
       options: params.options,
       resolvedConfig: params.resolvedConfig,
-      runtimeConfig: resolveCurrentRuntimeConfig(),
+      runtimeConfig,
       getRuntimeConfig: resolveCurrentRuntimeConfig,
     }),
     existingToolNames: params.existingToolNames ?? new Set<string>(),
